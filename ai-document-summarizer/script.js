@@ -1,70 +1,92 @@
-/* ---------- mouse-follow glow ---------- */
+/* ---------- mouse effect (glow + dot) ---------- */
 const glow = document.getElementById('glow');
-let tx = innerWidth / 2, ty = innerHeight / 2, x = tx, y = ty;
+const dot = document.getElementById('dot');
+let mx = innerWidth / 2, my = innerHeight / 2;   // real mouse
+let gx = mx, gy = my;                            // eased glow position
 
 addEventListener('mousemove', e => {
-  tx = e.clientX; ty = e.clientY;
-  glow.classList.add('on');
+  mx = e.clientX; my = e.clientY;
+  glow.classList.add('on'); dot.classList.add('on');
+  dot.style.left = mx + 'px'; dot.style.top = my + 'px';
 });
-document.addEventListener('mouseleave', () => glow.classList.remove('on'));
+document.addEventListener('mouseleave', () => {
+  glow.classList.remove('on'); dot.classList.remove('on');
+});
+document.querySelectorAll('a,button,.file,input,textarea').forEach(el => {
+  el.addEventListener('mouseenter', () => dot.classList.add('big'));
+  el.addEventListener('mouseleave', () => dot.classList.remove('big'));
+});
 
-(function follow() {
-  x += (tx - x) * 0.12;
-  y += (ty - y) * 0.12;
-  glow.style.left = x + 'px';
-  glow.style.top = y + 'px';
-  requestAnimationFrame(follow);
-})();
-
-/* ---------- particle background ---------- */
+/* ---------- aurora + stars background ---------- */
 const cv = document.getElementById('bg');
 const ctx = cv.getContext('2d');
-let W, H, pts = [], mx = -999, my = -999;
+let W, H, stars = [];
 
 function resize() {
   W = cv.width = innerWidth;
   H = cv.height = innerHeight;
-  const n = Math.min(110, Math.floor(W * H / 14000));
-  pts = Array.from({ length: n }, () => ({
+  stars = Array.from({ length: Math.floor(W * H / 9000) }, () => ({
     x: Math.random() * W, y: Math.random() * H,
-    vx: (Math.random() - .5) * .35, vy: (Math.random() - .5) * .35,
-    r: Math.random() * 1.6 + .6
+    r: Math.random() * 1.2 + .2,
+    t: Math.random() * 6.28, s: Math.random() * .02 + .005,
+    d: Math.random() * .04 + .01          // parallax depth
   }));
 }
 addEventListener('resize', resize);
-addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
 resize();
 
-function draw() {
-  ctx.clearRect(0, 0, W, H);
-  for (const p of pts) {
-    p.x += p.vx; p.y += p.vy;
-    if (p.x < 0 || p.x > W) p.vx *= -1;
-    if (p.y < 0 || p.y > H) p.vy *= -1;
+// aurora blobs: [x, y, size, speedX, speedY, phase, colour]
+const blobs = [
+  [.25, .30, .55, .00021, .00017, 0,   '138,77,255'],
+  [.70, .25, .50, .00017, .00023, 2,   '228,92,255'],
+  [.50, .75, .60, .00019, .00015, 4,   '90,60,255'],
+  [.85, .70, .45, .00023, .00020, 1,   '200,70,230'],
+  [.15, .80, .40, .00015, .00022, 3,   '110,70,255']
+];
 
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.r, 0, 6.283);
-    ctx.fillStyle = 'rgba(185,166,255,.85)';
-    ctx.fill();
+function draw(t) {
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.fillStyle = '#06030d';
+  ctx.fillRect(0, 0, W, H);
 
-    const dm = Math.hypot(p.x - mx, p.y - my);
-    if (dm < 170) {
-      ctx.strokeStyle = `rgba(160,125,255,${1 - dm / 170})`;
-      ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(mx, my); ctx.stroke();
-    }
+  // flowing aurora light
+  ctx.globalCompositeOperation = 'lighter';
+  for (const [bx, by, bs, sx, sy, ph, col] of blobs) {
+    const x = W * (bx + Math.sin(t * sx + ph) * .22);
+    const y = H * (by + Math.cos(t * sy + ph * 1.3) * .2);
+    const r = Math.max(W, H) * bs * (0.85 + Math.sin(t * .0004 + ph) * .15);
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, `rgba(${col},.30)`);
+    g.addColorStop(.5, `rgba(${col},.10)`);
+    g.addColorStop(1, `rgba(${col},0)`);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
   }
-  for (let i = 0; i < pts.length; i++) {
-    for (let j = i + 1; j < pts.length; j++) {
-      const d = Math.hypot(pts[i].x - pts[j].x, pts[i].y - pts[j].y);
-      if (d < 120) {
-        ctx.strokeStyle = `rgba(139,108,255,${.22 * (1 - d / 120)})`;
-        ctx.beginPath(); ctx.moveTo(pts[i].x, pts[i].y); ctx.lineTo(pts[j].x, pts[j].y); ctx.stroke();
-      }
-    }
+
+  // light that follows the mouse
+  gx += (mx - gx) * .06; gy += (my - gy) * .06;
+  glow.style.left = gx + 'px'; glow.style.top = gy + 'px';
+  const mr = Math.max(W, H) * .28;
+  const mg = ctx.createRadialGradient(gx, gy, 0, gx, gy, mr);
+  mg.addColorStop(0, 'rgba(228,92,255,.28)');
+  mg.addColorStop(1, 'rgba(228,92,255,0)');
+  ctx.fillStyle = mg;
+  ctx.fillRect(0, 0, W, H);
+
+  // twinkling stars with mouse parallax
+  ctx.globalCompositeOperation = 'source-over';
+  const ox = (mx - W / 2) * .02, oy = (my - H / 2) * .02;
+  for (const s of stars) {
+    s.t += s.s;
+    const a = .35 + Math.sin(s.t) * .35;
+    ctx.fillStyle = `rgba(235,220,255,${a})`;
+    ctx.beginPath();
+    ctx.arc(s.x - ox * s.d * 40, s.y - oy * s.d * 40, s.r, 0, 6.283);
+    ctx.fill();
   }
   requestAnimationFrame(draw);
 }
-draw();
+requestAnimationFrame(draw);
 
 /* ---------- summarizer UI ---------- */
 const input = document.getElementById('input');
