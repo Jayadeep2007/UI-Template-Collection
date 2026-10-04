@@ -130,3 +130,14 @@ $('copy').addEventListener('click', () => {
   $('copy').textContent = 'Copied ✓';
   setTimeout(() => ($('copy').textContent = 'Copy'), 1200);
 });
+const glow = document.getElementById('glow');
+let tx = innerWidth/2, ty = innerHeight/2, x = tx, y = ty;
+addEventListener('mousemove', e => { tx = e.clientX; ty = e.clientY; glow.classList.add('on'); });
+document.addEventListener('mouseleave', () => glow.classList.remove('on'));
+(function follow(){
+  x += (tx - x) * 0.12;
+  y += (ty - y) * 0.12;
+  glow.style.left = x + 'px';
+  glow.style.top = y + 'px';
+  requestAnimationFrame(follow);
+})();
