@@ -11,9 +11,9 @@
 </head>
 <body>
 
-<canvas id="bg" aria-hidden="true"></canvas>
+<div id="bg" aria-hidden="true"></div>
 <div class="glow" id="glow" aria-hidden="true"></div>
-<div class="dot" id="dot" aria-hidden="true"></div>
+<div class="ring" id="ring" aria-hidden="true"></div>
 
 <header class="nav">
   <a class="back" href="../index.html">&larr; AI Interface Collection</a>
@@ -23,32 +23,30 @@
   <h1>Paste a long document.<br>Get the short version.</h1>
   <p class="lead">Drop in text or upload a .txt file and choose how short you want the summary.</p>
 
-  <section class="panel">
+  <section class="panel tilt">
     <textarea id="input" placeholder="Paste your document here..." rows="9"></textarea>
-
     <div class="controls">
       <label class="file">
         <input type="file" id="file" accept=".txt,text/plain">
         <span>Upload .txt file</span>
       </label>
-
       <label class="len">
         Summary length
         <input type="range" id="len" min="1" max="8" value="3">
         <output id="lenOut">3 sentences</output>
       </label>
-
       <button id="go" class="btn">Summarize</button>
     </div>
   </section>
 
-  <section class="panel result" id="result" hidden>
+  <section class="panel tilt result" id="result" hidden>
     <div class="stats" id="stats"></div>
     <p id="summary"></p>
     <button id="copy" class="btn ghost">Copy summary</button>
   </section>
 </main>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="script.js"></script>
 </body>
 </html>
